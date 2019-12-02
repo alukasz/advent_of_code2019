@@ -1,6 +1,8 @@
 defmodule AoC2019.Day1 do
+  @day 1
+
   def fuel_required do
-    AoC2019.input(1)
+    AoC2019.stream(@day)
     |> Stream.map(&String.to_integer/1)
     |> Stream.map(&fuel_required/1)
     |> Enum.sum()
