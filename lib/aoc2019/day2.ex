@@ -1,17 +1,33 @@
 defmodule AoC2019.Day2 do
   @day 2
+  @part2_output 19_690_720
+  @noun_pointer 1
+  @verb_pointer 2
 
   def intcode_computer do
-    AoC2019.read(@day)
-    |> String.split(",")
-    |> Enum.map(&String.to_integer/1)
-    |> List.replace_at(1, 12)
-    |> List.replace_at(2, 2)
-    |> perform()
-    |> Enum.at(0)
+    program =
+      AoC2019.read(@day)
+      |> String.split(",")
+      |> Enum.map(&String.to_integer/1)
+
+    {noun, verb} =
+      Enum.reduce_while(0..99, nil, fn noun, _ ->
+        Enum.reduce_while(0..99, nil, fn verb, _ ->
+          program
+          |> List.replace_at(@noun_pointer, noun)
+          |> List.replace_at(@verb_pointer, verb)
+          |> perform()
+          |> case do
+            [@part2_output | _] -> {:halt, {:halt, {noun, verb}}}
+            _ -> {:cont, {:cont, nil}}
+          end
+        end)
+      end)
+
+    noun * 100 + verb
   end
 
-  @operation_offset 4
+  @instrucion_offset 4
   @add 1
   @multiply 2
   @finish 99
@@ -24,23 +40,27 @@ defmodule AoC2019.Day2 do
   iex> AoC2019.Day2.perform([1,9,10,3,2,3,11,0,99,30,40,50])
   [3500,9,10,70,2,3,11,0,99,30,40,50]
   """
-  def perform(program, pos \\ 0) do
-    case operation(Enum.drop(program, pos)) do
+  def perform(program, instruction_pointer \\ 0) do
+    case instrucion(Enum.drop(program, instruction_pointer)) do
       :done -> program
-      operation -> perform(operation.(program), pos + @operation_offset)
+      instrucion -> perform(instrucion.(program), instruction_pointer + @instrucion_offset)
     end
   end
 
-  defp operation([@finish | _]), do: :done
+  defp instrucion([@finish | _]), do: :done
 
-  defp operation([opcode, arg1_pos, arg2_pos, result_pos | _]) do
+  defp instrucion([@add, param1, param2, param3 | _]) do
+    instruction_fun(&Kernel.+/2, param1, param2, param3)
+  end
+
+  defp instrucion([@multiply, param1, param2, param3 | _]) do
+    instruction_fun(&Kernel.*/2, param1, param2, param3)
+  end
+
+  defp instruction_fun(operation, param1, param2, param3) do
     fn program ->
-      operation = opcode_operation(opcode)
-      result = operation.(Enum.at(program, arg1_pos), Enum.at(program, arg2_pos))
-      List.replace_at(program, result_pos, result)
+      result = operation.(Enum.at(program, param1), Enum.at(program, param2))
+      List.replace_at(program, param3, result)
     end
   end
-
-  defp opcode_operation(@add), do: &Kernel.+/2
-  defp opcode_operation(@multiply), do: &Kernel.*/2
 end
