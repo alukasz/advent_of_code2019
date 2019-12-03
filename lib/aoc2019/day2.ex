@@ -5,13 +5,13 @@ defmodule AoC2019.Day2 do
   @verb_pointer 2
 
   def intcode_computer do
-    program =
+    input =
       AoC2019.read(@day)
       |> String.split(",")
       |> Enum.map(&String.to_integer/1)
 
     program =
-      Enum.zip(0..1_000_000, program)
+      Enum.zip(0..1_000_000, input)
       |> Enum.into(%{})
 
     {noun, verb} =
@@ -29,11 +29,6 @@ defmodule AoC2019.Day2 do
       end)
 
     noun * 100 + verb
-  end
-
-  def transform_program(program) do
-    Enum.zip(0..1_000_000, program)
-    |> Enum.into(%{})
   end
 
   @instrucion_offset 4
