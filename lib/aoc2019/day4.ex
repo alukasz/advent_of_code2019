@@ -3,8 +3,8 @@ defmodule AoC2019.Day4 do
   @to 585_159
 
   def count_valid_passwords(from \\ @from, to \\ @to) do
-    Enum.reduce(from..to, 0, fn password_candidate, count ->
-      if valid_password?(password_candidate), do: count + 1, else: count
+    Enum.reduce(from..to, 0, fn candidate, count ->
+      if valid_password?(candidate), do: count + 1, else: count
     end)
   end
 
@@ -25,38 +25,28 @@ defmodule AoC2019.Day4 do
   true
   """
   def valid_password?(password) do
-    password_digits =
+    pairs =
       password
-      |> to_string()
-      |> String.split("", trim: true)
-      |> Enum.map(&String.to_integer/1)
+      |> Integer.digits()
+      |> Enum.chunk_every(2, 1, :discard)
 
-    same_adjacent_digits?(password_digits) and never_decrease?(password_digits) and
-      same_adjacent_digits_not_part_of_larger_group(password_digits)
+    never_decrease?(pairs) and same_adjacent_digits?(pairs) and
+      same_adjacent_digits_not_part_of_larger_group?(pairs)
   end
 
-  defp same_adjacent_digits?(password_digits) do
-    password_digits
-    # -1 as leftover to match [a, b] and not false positive Enum.any?/2
-    |> Enum.chunk_every(2, 1, [-1])
-    |> Enum.any?(fn [a, b] -> a == b end)
+  defp never_decrease?(pairs) do
+    Enum.all?(pairs, fn [a, b] -> a <= b end)
   end
 
-  defp never_decrease?(password_digits) do
-    password_digits
-    # last digit as leftover to match [a, b] and not false negative Enum.all?/2
-    |> Enum.chunk_every(2, 1, [List.last(password_digits)])
-    |> Enum.all?(fn [a, b] -> a <= b end)
+  defp same_adjacent_digits?(pairs) do
+    Enum.any?(pairs, fn [a, b] -> a == b end)
   end
 
-  defp same_adjacent_digits_not_part_of_larger_group(password_digits) do
-    password_digits
-    # -1 as leftover to match [a, b] and not false positive Enum.filter/2
-    |> Enum.chunk_every(2, 1, [-1])
-    |> Enum.filter(fn [a, b] -> a == b end)
-    # group by pair of adjacent digits
+  defp same_adjacent_digits_not_part_of_larger_group?(pairs) do
+    pairs
+    |> Enum.filter(&match?([a, a], &1))
     |> Enum.group_by(& &1)
     # check if any pair occured once
-    |> Enum.any?(fn {_, count} -> length(count) == 1 end)
+    |> Enum.any?(&match?({_, [_]}, &1))
   end
 end
