@@ -3,9 +3,14 @@ defmodule AoC2019.Day4 do
   @to 585_159
 
   def count_valid_passwords(from \\ @from, to \\ @to) do
-    Enum.reduce(from..to, 0, fn candidate, count ->
-      if valid_password?(candidate), do: count + 1, else: count
+    from..to
+    |> Enum.chunk_every(ceil((to - from) / System.schedulers()))
+    |> Task.async_stream(fn range ->
+      Enum.reduce(range, 0, fn candidate, count ->
+        if valid_password?(candidate), do: count + 1, else: count
+      end)
     end)
+    |> Enum.reduce(0, &elem(&1, 1) + &2)
   end
 
   @doc """
