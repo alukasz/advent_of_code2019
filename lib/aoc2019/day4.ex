@@ -10,13 +10,19 @@ defmodule AoC2019.Day4 do
 
   @doc """
   iex> AoC2019.Day4.valid_password?(111111)
-  true
+  false
   iex> AoC2019.Day4.valid_password?(223450)
   false
   iex> AoC2019.Day4.valid_password?(223434)
   false
   iex> AoC2019.Day4.valid_password?(123789)
   false
+  iex> AoC2019.Day4.valid_password?(112233)
+  true
+  iex> AoC2019.Day4.valid_password?(123444)
+  false
+  iex> AoC2019.Day4.valid_password?(111122)
+  true
   """
   def valid_password?(password) do
     password_digits =
@@ -25,7 +31,8 @@ defmodule AoC2019.Day4 do
       |> String.split("", trim: true)
       |> Enum.map(&String.to_integer/1)
 
-    same_adjacent_digits?(password_digits) and never_decrease?(password_digits)
+    same_adjacent_digits?(password_digits) and never_decrease?(password_digits) and
+      same_adjacent_digits_not_part_of_larger_group(password_digits)
   end
 
   defp same_adjacent_digits?(password_digits) do
@@ -40,5 +47,16 @@ defmodule AoC2019.Day4 do
     # last digit as leftover to match [a, b] and not false negative Enum.all?/2
     |> Enum.chunk_every(2, 1, [List.last(password_digits)])
     |> Enum.all?(fn [a, b] -> a <= b end)
+  end
+
+  defp same_adjacent_digits_not_part_of_larger_group(password_digits) do
+    password_digits
+    # -1 as leftover to match [a, b] and not false positive Enum.filter/2
+    |> Enum.chunk_every(2, 1, [-1])
+    |> Enum.filter(fn [a, b] -> a == b end)
+    # group by pair of adjacent digits
+    |> Enum.group_by(& &1)
+    # check if any pair occured once
+    |> Enum.any?(fn {_, count} -> length(count) == 1 end)
   end
 end
