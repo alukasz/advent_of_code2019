@@ -10,7 +10,7 @@ defmodule AoC2019.Day4 do
         if valid_password?(candidate), do: count + 1, else: count
       end)
     end)
-    |> Enum.reduce(0, &elem(&1, 1) + &2)
+    |> Enum.reduce(0, &(elem(&1, 1) + &2))
   end
 
   @doc """
