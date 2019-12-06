@@ -12,6 +12,7 @@ defmodule AoC2019.Day5 do
   """
   def test_diagnostic(program \\ AoC2019.read(@day), input) do
     Process.put(:input, input)
+
     program
     |> String.split(",", trim: true)
     |> Enum.map(&String.to_integer/1)
@@ -111,7 +112,7 @@ defmodule AoC2019.Day5 do
   end
 
   defp do_perform_instruction(memory, {@output, [param]}) do
-    IO.inspect({:output, get_memory(memory, param)})
+    # IO.inspect({:output, get_memory(memory, param)})
     Process.put(:output, get_memory(memory, param))
 
     {:ok, memory}
