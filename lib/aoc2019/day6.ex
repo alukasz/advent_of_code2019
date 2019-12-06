@@ -25,14 +25,12 @@ defmodule AoC2019.Day6 do
   end
 
   @doc !"""
-  Builds map where value is object that key orbits.
+  Builds map where key is object orbiting value.
   """
   defp build_orbited_objects(orbiting_objects) do
-    Enum.reduce(orbiting_objects, %{}, fn {key, values}, orbited_objects ->
-      Enum.reduce(values, orbited_objects, fn value, orbited_objects ->
-        Map.put(orbited_objects, value, key)
-      end)
-    end)
+    for {key, values} <- orbiting_objects, value <- values, reduce: %{} do
+      acc -> Map.put(acc, value, key)
+    end
   end
 
   defp count_orbits(orbiting_objects, object, depth) do
