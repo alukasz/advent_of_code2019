@@ -9,10 +9,12 @@ defmodule AoC2019.Day5 do
   @jump_if_false 6
   @less_than 7
   @equals 8
+  @adjust_relative_base 9
   @finish 99
 
   @position_mode 0
   @immediate_mode 1
+  @relative_base_mode 2
 
   @doc """
   iex> program = "3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99"
@@ -34,15 +36,22 @@ defmodule AoC2019.Day5 do
     get_output(pid) |> hd()
   end
 
-  def start_intcode_program(program, caller \\ self()) do
+  def start_intcode_program(program, caller \\ self()) when is_list(program) do
     Task.start(fn ->
       Process.put(:caller, caller)
-      perform(program)
+      Process.put(:relative_base, 0)
+      perform(build_memory(program))
     end)
   end
 
+  defp build_memory(program) do
+    program
+    |> Enum.zip(0..1_000_000)
+    |> Enum.map(fn {k, v} -> {v, k} end)
+    |> Enum.into(%{})
+  end
+
   def send_input(pid, input) do
-    # IO.puts("sending input #{input} to #{inspect(pid)} ")
     send(pid, {:input, input})
   end
 
@@ -71,7 +80,7 @@ defmodule AoC2019.Day5 do
   end
 
   def perform_instruction(memory, instruction_pointer) do
-    instruction = read_next_instruction(Enum.drop(memory, instruction_pointer))
+    instruction = read_next_instruction(memory, instruction_pointer)
 
     case do_perform_instruction(memory, instruction) do
       {status, memory} ->
@@ -82,9 +91,13 @@ defmodule AoC2019.Day5 do
     end
   end
 
-  def read_next_instruction([instruction | rest]) do
+  def read_next_instruction(memory, instruction_pointer) do
+    instruction = Map.get(memory, instruction_pointer)
     {opcode, param_modes} = parse_instruction(instruction)
-    params = Enum.take(rest, instruction_params_count(opcode))
+
+    params = for i <- 1..instruction_params_count(opcode) do
+      Map.get(memory, instruction_pointer + i)
+    end
     {opcode, Enum.zip(param_modes, params)}
   end
 
@@ -119,6 +132,7 @@ defmodule AoC2019.Day5 do
   defp instruction_params_count(@jump_if_false), do: 2
   defp instruction_params_count(@less_than), do: 3
   defp instruction_params_count(@equals), do: 3
+  defp instruction_params_count(@adjust_relative_base), do: 1
   defp instruction_params_count(@finish), do: 0
 
   defp instruction_pointer_offset({opcode, _}) do
@@ -136,15 +150,12 @@ defmodule AoC2019.Day5 do
   end
 
   defp do_perform_instruction(memory, {@input, [param]}) do
-    # IO.puts("#{inspect(self())} waiting for input")
-
     receive do
       {:input, input} -> {:ok, set_memory(memory, param, input)}
     end
   end
 
   defp do_perform_instruction(memory, {@output, [param]}) do
-    # IO.inspect({self(), :output, get_memory(memory, param)})
     send(Process.get(:caller), {:output, self(), get_memory(memory, param)})
 
     {:ok, memory}
@@ -178,12 +189,24 @@ defmodule AoC2019.Day5 do
     end
   end
 
+  defp do_perform_instruction(memory, {@adjust_relative_base, [param]}) do
+    relative_base = Process.get(:relative_base)
+    Process.put(:relative_base, relative_base + get_memory(memory, param))
+    {:ok, memory}
+  end
+
   defp do_perform_instruction(memory, {@finish, _}) do
     {:done, memory}
   end
 
   defp get_memory(_memory, {@immediate_mode, value}), do: value
-  defp get_memory(memory, {@position_mode, pos}), do: Enum.at(memory, pos)
+  defp get_memory(memory, {@position_mode, pos}), do: Map.get(memory, pos, 0)
+  defp get_memory(memory, {@relative_base_mode, pos}) do
+    Map.get(memory, pos + Process.get(:relative_base), 0)
+  end
 
-  defp set_memory(memory, {@position_mode, pos}, value), do: List.replace_at(memory, pos, value)
+  defp set_memory(memory, {@position_mode, pos}, value), do: Map.put(memory, pos, value)
+  defp set_memory(memory, {@relative_base_mode, pos}, value) do
+    Map.put(memory, pos + Process.get(:relative_base), value)
+  end
 end
