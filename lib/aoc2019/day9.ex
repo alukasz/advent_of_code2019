@@ -14,14 +14,14 @@ defmodule AoC2019.Day9 do
   iex> AoC2019.Day9.test()
   [3507134798]
   """
-  def test(input \\ AoC2019.read(@day)) do
+  def test(program \\ AoC2019.read(@day), input \\ 1) do
     program =
-      input
+      program
       |> String.split(",", trim: true)
       |> Enum.map(&String.to_integer/1)
 
     {:ok, pid} = IntcodeComputer.start_intcode_program(program)
-    IntcodeComputer.send_input(pid, 1)
+    IntcodeComputer.send_input(pid, input)
     IntcodeComputer.get_output(pid)
   end
 end
