@@ -11,12 +11,14 @@ defmodule AoC2019.Day5 do
   1001
   """
   def test_diagnostic(program \\ AoC2019.read(@day), input) do
-    Process.put(:input, input)
+    program =
+      program
+      |> String.split(",", trim: true)
+      |> Enum.map(&String.to_integer/1)
 
-    program
-    |> String.split(",", trim: true)
-    |> Enum.map(&String.to_integer/1)
-    |> perform()
+    {:ok, pid} = start_intcode_program(program)
+    send_input(pid, input)
+    get_output()
   end
 
   @add 1
@@ -32,10 +34,35 @@ defmodule AoC2019.Day5 do
   @position_mode 0
   @immediate_mode 1
 
+  def start_intcode_program(program, caller \\ self()) do
+    Task.start(fn ->
+      Process.put(:caller, caller)
+      perform(program)
+    end)
+  end
+
+  def send_input(pid, input) do
+    send(pid, {:input, input})
+  end
+
+  @doc """
+  Output in reverse order - last output is first value.
+  """
+  def get_output(acc \\ []) do
+    receive do
+      {:output, output} -> get_output([output | acc])
+      :done -> acc
+    after
+      5_000 ->
+      {:error, :timeout}
+    end
+  end
+
   def perform(memory, instruction_pointer \\ 0) do
     case perform_instruction(memory, instruction_pointer) do
-      {:done, _memory, _instruction_pointer} ->
-        Process.get(:output)
+      {:done, memory, _instruction_pointer} ->
+        send(Process.get(:caller), :done)
+        memory
 
       {:ok, memory, instruction_pointer} ->
         perform(memory, instruction_pointer)
@@ -108,12 +135,15 @@ defmodule AoC2019.Day5 do
   end
 
   defp do_perform_instruction(memory, {@input, [param]}) do
-    {:ok, set_memory(memory, param, Process.get(:input))}
+    # IO.puts "waiting for input"
+    receive do
+      {:input, input} -> {:ok, set_memory(memory, param, input)}
+    end
   end
 
   defp do_perform_instruction(memory, {@output, [param]}) do
     # IO.inspect({:output, get_memory(memory, param)})
-    Process.put(:output, get_memory(memory, param))
+    send(Process.get(:caller), {:output, get_memory(memory, param)})
 
     {:ok, memory}
   end
