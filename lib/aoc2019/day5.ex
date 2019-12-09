@@ -95,9 +95,11 @@ defmodule AoC2019.Day5 do
     instruction = Map.get(memory, instruction_pointer)
     {opcode, param_modes} = parse_instruction(instruction)
 
-    params = for i <- 1..instruction_params_count(opcode) do
-      Map.get(memory, instruction_pointer + i)
-    end
+    params =
+      for i <- 1..instruction_params_count(opcode) do
+        Map.get(memory, instruction_pointer + i)
+      end
+
     {opcode, Enum.zip(param_modes, params)}
   end
 
@@ -201,12 +203,12 @@ defmodule AoC2019.Day5 do
 
   defp get_memory(_memory, {@immediate_mode, value}), do: value
   defp get_memory(memory, {@position_mode, pos}), do: Map.get(memory, pos, 0)
-  defp get_memory(memory, {@relative_base_mode, pos}) do
-    Map.get(memory, pos + Process.get(:relative_base), 0)
-  end
+
+  defp get_memory(memory, {@relative_base_mode, pos}),
+    do: Map.get(memory, pos + Process.get(:relative_base), 0)
 
   defp set_memory(memory, {@position_mode, pos}, value), do: Map.put(memory, pos, value)
-  defp set_memory(memory, {@relative_base_mode, pos}, value) do
-    Map.put(memory, pos + Process.get(:relative_base), value)
-  end
+
+  defp set_memory(memory, {@relative_base_mode, pos}, value),
+    do: Map.put(memory, pos + Process.get(:relative_base), value)
 end
