@@ -14,8 +14,8 @@ defmodule AoC2019.Day6 do
   end
 
   @doc !"""
-  Builds map where values are objects orbiting key.
-  """
+       Builds map where values are objects orbiting key.
+       """
   defp build_orbiting_objects(orbits) do
     orbits
     |> Stream.map(&String.split(&1, ")"))
@@ -25,8 +25,8 @@ defmodule AoC2019.Day6 do
   end
 
   @doc !"""
-  Builds map where key is object orbiting value.
-  """
+       Builds map where key is object orbiting value.
+       """
   defp build_orbited_objects(orbiting_objects) do
     for {key, values} <- orbiting_objects, value <- values, reduce: %{} do
       acc -> Map.put(acc, value, key)
@@ -67,7 +67,9 @@ defmodule AoC2019.Day6 do
     to_visit = neighbours_objects(orbiting_objects, orbited_objects, from) -- visited
 
     Enum.flat_map_reduce(to_visit, visited, fn from, visited ->
-      do_count_orbital_transfers(orbiting_objects, orbited_objects, from, to, count + 1, [from | visited])
+      do_count_orbital_transfers(orbiting_objects, orbited_objects, from, to, count + 1, [
+        from | visited
+      ])
     end)
   end
 

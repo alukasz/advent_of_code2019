@@ -18,7 +18,7 @@ defmodule AoC2019.Day5 do
 
     {:ok, pid} = start_intcode_program(program)
     send_input(pid, input)
-    get_output()
+    get_output() |> hd
   end
 
   @add 1
@@ -54,7 +54,7 @@ defmodule AoC2019.Day5 do
       :done -> acc
     after
       5_000 ->
-      {:error, :timeout}
+        {:error, :timeout}
     end
   end
 

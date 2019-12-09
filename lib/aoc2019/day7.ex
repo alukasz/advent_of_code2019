@@ -10,6 +10,7 @@ defmodule AoC2019.Day7 do
       input
       |> String.split(",", trim: true)
       |> Enum.map(&String.to_integer/1)
+
     phase_settings = permute(0..4)
 
     Enum.map(phase_settings, &amplifiers_output(program, &1))
@@ -34,7 +35,8 @@ defmodule AoC2019.Day7 do
   # from https://rosettacode.org/wiki/Permutations#Elixir
   defp permute(_.._ = range), do: permute(Enum.to_list(range))
   defp permute([]), do: [[]]
+
   defp permute(list) do
-    for x <- list, y <- permute(list -- [x]), do: [x|y]
+    for x <- list, y <- permute(list -- [x]), do: [x | y]
   end
 end
