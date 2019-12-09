@@ -1,6 +1,19 @@
 defmodule AoC2019.Day5 do
   @day 5
 
+  @add 1
+  @multiply 2
+  @input 3
+  @output 4
+  @jump_if_true 5
+  @jump_if_false 6
+  @less_than 7
+  @equals 8
+  @finish 99
+
+  @position_mode 0
+  @immediate_mode 1
+
   @doc """
   iex> program = "3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99"
   iex> AoC2019.Day5.test_diagnostic(program, 7)
@@ -18,21 +31,8 @@ defmodule AoC2019.Day5 do
 
     {:ok, pid} = start_intcode_program(program)
     send_input(pid, input)
-    get_output() |> hd
+    get_output(pid) |> hd()
   end
-
-  @add 1
-  @multiply 2
-  @input 3
-  @output 4
-  @jump_if_true 5
-  @jump_if_false 6
-  @less_than 7
-  @equals 8
-  @finish 99
-
-  @position_mode 0
-  @immediate_mode 1
 
   def start_intcode_program(program, caller \\ self()) do
     Task.start(fn ->
@@ -42,16 +42,17 @@ defmodule AoC2019.Day5 do
   end
 
   def send_input(pid, input) do
+    # IO.puts("sending input #{input} to #{inspect(pid)} ")
     send(pid, {:input, input})
   end
 
   @doc """
   Output in reverse order - last output is first value.
   """
-  def get_output(acc \\ []) do
+  def get_output(pid, acc \\ []) do
     receive do
-      {:output, output} -> get_output([output | acc])
-      :done -> acc
+      {:output, ^pid, output} -> get_output(pid, [output | acc])
+      {:done, ^pid} -> acc
     after
       5_000 ->
         {:error, :timeout}
@@ -61,7 +62,7 @@ defmodule AoC2019.Day5 do
   def perform(memory, instruction_pointer \\ 0) do
     case perform_instruction(memory, instruction_pointer) do
       {:done, memory, _instruction_pointer} ->
-        send(Process.get(:caller), :done)
+        send(Process.get(:caller), {:done, self()})
         memory
 
       {:ok, memory, instruction_pointer} ->
@@ -135,15 +136,16 @@ defmodule AoC2019.Day5 do
   end
 
   defp do_perform_instruction(memory, {@input, [param]}) do
-    # IO.puts "waiting for input"
+    # IO.puts("#{inspect(self())} waiting for input")
+
     receive do
       {:input, input} -> {:ok, set_memory(memory, param, input)}
     end
   end
 
   defp do_perform_instruction(memory, {@output, [param]}) do
-    # IO.inspect({:output, get_memory(memory, param)})
-    send(Process.get(:caller), {:output, get_memory(memory, param)})
+    # IO.inspect({self(), :output, get_memory(memory, param)})
+    send(Process.get(:caller), {:output, self(), get_memory(memory, param)})
 
     {:ok, memory}
   end
