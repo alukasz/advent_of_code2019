@@ -10,4 +10,5 @@ defmodule AoC2019Test do
   doctest AoC2019.Day7
   doctest AoC2019.Day8
   doctest AoC2019.Day9
+  doctest AoC2019.Day10
 end

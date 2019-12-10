@@ -46,7 +46,7 @@ defmodule AoC2019.Day5 do
 
   defp build_memory(program) do
     program
-    |> Enum.zip(0..1_000_000)
+    |> Enum.with_index()
     |> Enum.map(fn {k, v} -> {v, k} end)
     |> Enum.into(%{})
   end
