@@ -26,17 +26,21 @@ defmodule AoC2019.Day5 do
   1001
   """
   def test_diagnostic(program \\ AoC2019.read(@day), input) do
-    program =
-      program
-      |> String.split(",", trim: true)
-      |> Enum.map(&String.to_integer/1)
-
     {:ok, pid} = start_intcode_program(program)
     send_input(pid, input)
     get_output(pid) |> hd()
   end
 
-  def start_intcode_program(program, caller \\ self()) when is_list(program) do
+  def start_intcode_program(program, caller \\ self())
+
+  def start_intcode_program(program, caller) when is_binary(program) do
+    program
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.to_integer/1)
+    |> start_intcode_program(caller)
+  end
+
+  def start_intcode_program(program, caller) when is_list(program) do
     Task.start(fn ->
       Process.put(:caller, caller)
       Process.put(:relative_base, 0)
