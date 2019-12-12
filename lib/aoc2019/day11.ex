@@ -8,7 +8,7 @@ defmodule AoC2019.Day11 do
   @right 1
 
   @doc """
-  iex> AoC2019.Day11.count_panels() do
+  iex> AoC2019.Day11.count_panels()
   2268
   """
   def count_panels(input \\ AoC2019.read(@day)) do
@@ -29,6 +29,7 @@ defmodule AoC2019.Day11 do
           @white -> IO.write("#")
         end
       end
+
       IO.write("\n")
     end
   end
@@ -55,9 +56,6 @@ defmodule AoC2019.Day11 do
                 {loc, dir} = move(dir, turn, loc)
 
                 {:cont, {map, loc, dir}}
-
-              {:done, ^pid} ->
-                {:halt, {map, loc, dir}}
             end
 
           {:done, ^pid} ->
