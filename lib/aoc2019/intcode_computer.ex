@@ -14,22 +14,24 @@ defmodule IntcodeComputer do
   @immediate_mode 1
   @relative_base_mode 2
 
-  def start_program(program, caller \\ self())
+  def start_program(program, opts \\ [])
 
-  def start_program(program, caller) when is_binary(program) do
+  def start_program(program, opts) when is_binary(program) do
     program
     |> String.split(",", trim: true)
     |> Enum.map(&String.to_integer/1)
-    |> start_program(caller)
+    |> start_program(opts)
   end
 
-  def start_program(program, caller) when is_list(program) do
-    Task.start(fn ->
-      Process.put(:caller, caller)
-      Process.put(:relative_base, 0)
+  def start_program(program, opts) when is_list(program) do
+    caller = self()
 
+    Task.start(fn ->
       program
       |> build_memory()
+      |> Map.put(:caller, Keyword.get(opts, :caller, caller))
+      |> Map.put(:relative_base, 0)
+      |> Map.put(:ask_for_input, Keyword.get(opts, :ask_for_input, false))
       |> perform()
     end)
   end
@@ -48,6 +50,7 @@ defmodule IntcodeComputer do
   def get_output(pid) do
     receive do
       {:output, ^pid, output} -> output
+      {:waiting_for_input, ^pid} -> :waiting_for_input
       {:done, ^pid} -> :done
     after
       5_000 ->
@@ -58,6 +61,7 @@ defmodule IntcodeComputer do
   def get_all_output(pid, acc \\ []) do
     receive do
       {:output, ^pid, output} -> get_all_output(pid, [output | acc])
+      {:waiting_for_input, ^pid} -> get_all_output(pid, acc)
       {:done, ^pid} -> Enum.reverse(acc)
     after
       5_000 ->
@@ -148,13 +152,17 @@ defmodule IntcodeComputer do
   end
 
   defp do_perform_instruction(memory, {@input, [param]}) do
+    if Map.get(memory, :ask_for_input) do
+      send(Map.get(memory, :caller), {:waiting_for_input, self()})
+    end
+
     receive do
       {:input, input} -> {:ok, set_memory(memory, param, input)}
     end
   end
 
   defp do_perform_instruction(memory, {@output, [param]}) do
-    send(Process.get(:caller), {:output, self(), get_memory(memory, param)})
+    send(Map.get(memory, :caller), {:output, self(), get_memory(memory, param)})
 
     {:ok, memory}
   end
@@ -188,13 +196,11 @@ defmodule IntcodeComputer do
   end
 
   defp do_perform_instruction(memory, {@adjust_relative_base, [param]}) do
-    relative_base = Process.get(:relative_base)
-    Process.put(:relative_base, relative_base + get_memory(memory, param))
-    {:ok, memory}
+    {:ok, Map.update!(memory, :relative_base, &(&1 + get_memory(memory, param)))}
   end
 
   defp do_perform_instruction(memory, {@finish, _}) do
-    send(Process.get(:caller), {:done, self()})
+    send(Map.get(memory, :caller), {:done, self()})
     {:done, memory}
   end
 
@@ -202,10 +208,10 @@ defmodule IntcodeComputer do
   defp get_memory(memory, {@position_mode, pos}), do: Map.get(memory, pos, 0)
 
   defp get_memory(memory, {@relative_base_mode, pos}),
-    do: Map.get(memory, pos + Process.get(:relative_base), 0)
+    do: Map.get(memory, pos + Map.get(memory, :relative_base), 0)
 
   defp set_memory(memory, {@position_mode, pos}, value), do: Map.put(memory, pos, value)
 
   defp set_memory(memory, {@relative_base_mode, pos}, value),
-    do: Map.put(memory, pos + Process.get(:relative_base), value)
+    do: Map.put(memory, pos + Map.get(memory, :relative_base), value)
 end

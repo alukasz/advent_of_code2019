@@ -8,14 +8,9 @@ defmodule AoC2019.Day7 do
   19539216
   """
   def max_thrusters_signal(input \\ AoC2019.read(@day)) do
-    program =
-      input
-      |> String.split(",", trim: true)
-      |> Enum.map(&String.to_integer/1)
-
     phase_settings = permute(5..9)
 
-    Enum.map(phase_settings, &amplifiers_output(program, &1))
+    Enum.map(phase_settings, &amplifiers_output(input, &1))
     |> Enum.max()
   end
 
@@ -47,14 +42,13 @@ defmodule AoC2019.Day7 do
       {pid, amplifier}, {input, e_output, []} ->
         IntcodeComputer.send_input(pid, input)
 
+        case IntcodeComputer.get_output(pid) do
+          :done ->
+            {:halt, e_output}
 
-      case IntcodeComputer.get_output(pid) do
-        :done ->
-          {:halt, e_output}
-
-        output ->
-          {:cont, {output, if(amplifier == :e, do: output, else: e_output), []}}
-      end
+          output ->
+            {:cont, {output, if(amplifier == :e, do: output, else: e_output), []}}
+        end
     end)
   end
 

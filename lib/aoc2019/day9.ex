@@ -13,11 +13,6 @@ defmodule AoC2019.Day9 do
   [3507134798]
   """
   def test(program \\ AoC2019.read(@day), input \\ 1) do
-    program =
-      program
-      |> String.split(",", trim: true)
-      |> Enum.map(&String.to_integer/1)
-
     {:ok, pid} = IntcodeComputer.start_program(program)
     IntcodeComputer.send_input(pid, input)
     IntcodeComputer.get_all_output(pid)
