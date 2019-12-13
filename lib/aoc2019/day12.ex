@@ -103,11 +103,14 @@ defmodule AoC2019.Day12 do
     if :states in :ets.all() do
       :ets.delete(:states)
     end
+
     :ets.new(:states, [:set, :named_table])
+
     Enum.reduce_while(Stream.iterate(0, &(&1 + 1)), axis, fn iteration, axis ->
       axis = simulate_axis(axis)
+
       case :ets.lookup(:states, {axis}) do
-        [axis]->
+        [axis] ->
           {:halt, iteration - elem(axis, 1)}
 
         [] ->
@@ -117,5 +120,5 @@ defmodule AoC2019.Day12 do
     end)
   end
 
-  def lcm(a,b), do: div(abs(a*b), Integer.gcd(a,b))
+  def lcm(a, b), do: div(abs(a * b), Integer.gcd(a, b))
 end

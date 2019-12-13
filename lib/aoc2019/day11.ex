@@ -1,6 +1,4 @@
 defmodule AoC2019.Day11 do
-  alias AoC2019.Day5, as: IntcodeComputer
-
   @day 11
   @black 0
   @white 1
@@ -35,7 +33,7 @@ defmodule AoC2019.Day11 do
   end
 
   defp paint(input, starting_color) do
-    {:ok, pid} = IntcodeComputer.start_intcode_program(input)
+    {:ok, pid} = IntcodeComputer.start_program(input)
 
     empty_colors =
       Stream.transform(Stream.cycle([1]), starting_color, fn
@@ -48,18 +46,16 @@ defmodule AoC2019.Day11 do
         color = Map.get(map, loc, empty_color)
         IntcodeComputer.send_input(pid, color)
 
-        receive do
-          {:output, ^pid, color_to_paint} ->
-            receive do
-              {:output, ^pid, turn} ->
-                map = Map.put(map, loc, color_to_paint)
-                {loc, dir} = move(dir, turn, loc)
-
-                {:cont, {map, loc, dir}}
-            end
-
-          {:done, ^pid} ->
+        case IntcodeComputer.get_output(pid) do
+          :done ->
             {:halt, {map, loc, dir}}
+
+          color_to_paint ->
+            turn = IntcodeComputer.get_output(pid)
+            map = Map.put(map, loc, color_to_paint)
+            {loc, dir} = move(dir, turn, loc)
+
+            {:cont, {map, loc, dir}}
         end
       end)
 
