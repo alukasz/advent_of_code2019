@@ -19,7 +19,9 @@ defmodule AoC2019.Day16 do
   end
 
   def fft(input, 0) when is_list(input) do
-    Enum.join(input, "")
+    input
+    |> Enum.take(8)
+    |> Enum.join("")
   end
 
   def fft(input, phases) when is_list(input) do

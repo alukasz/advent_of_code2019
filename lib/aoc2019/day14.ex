@@ -57,7 +57,7 @@ defmodule AoC2019.Day14 do
     end
   end
 
-  @ore 1000000000000
+  @ore 1_000_000_000_000
 
   @doc """
   iex> AoC2019.Day14.fuel_produced(AoC2019.Day14.input3())
@@ -69,9 +69,11 @@ defmodule AoC2019.Day14 do
   """
   def fuel_produced(input \\ AoC2019.stream(@day), ore_collected \\ @ore) do
     reactions_map = reactions_map(input)
+
     Enum.reduce_while(Stream.repeatedly(fn -> :ok end), {1, ore_collected}, fn _, {min, max} ->
       fuel = floor((min + max) / 2)
       ore_required = produce(reactions_map, :FUEL, fuel, %{})[:ORE]
+
       cond do
         min == max -> {:halt, fuel}
         ore_required > ore_collected -> {:cont, {min, fuel - 1}}
@@ -109,6 +111,7 @@ defmodule AoC2019.Day14 do
   defp find_inputs(map, output_chemical, required_amount) do
     {amount, inputs} = Map.get(map, output_chemical)
     times = Kernel.ceil(required_amount / amount)
+
     inputs =
       if times > 1 do
         Enum.map(inputs, fn {chemical, amount} -> {chemical, amount * times} end)
