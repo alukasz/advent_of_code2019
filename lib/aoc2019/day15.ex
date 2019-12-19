@@ -14,25 +14,51 @@ defmodule AoC2019.Day15 do
   end
 
   @doc """
-  iex> AoC2019.Day15.shortest_path
-  216
+  iex> AoC2019.Day15.fill_with_oxygen()
+  326
   """
-  def shortest_path(input \\ AoC2019.read(@day)) do
+  def fill_with_oxygen(input \\ AoC2019.read(@day)) do
     {:ok, pid} = IntcodeComputer.start_program(input)
-    {:ok, robot} = move(%Robot{computer: pid})
-    # draw_map(robot)
-    length(robot.path) - 1
+    {:ok, %{map: map}} = move(%Robot{computer: pid})
+
+    Enum.reduce_while(Stream.iterate(0, &(&1 + 1)), map, fn time, map ->
+      oxygen_fields = Enum.filter(map, &match?({_, @found}, &1))
+
+      find_neighbour_fields(map, oxygen_fields)
+      |> Enum.filter(&match?({_, @moved}, &1))
+      |> case do
+        [] ->
+          {:halt, time}
+
+        fields_to_expand ->
+          map =
+            Enum.reduce(fields_to_expand, map, fn {field, _}, map ->
+              Map.put(map, field, @found)
+            end)
+
+          {:cont, map}
+      end
+    end)
+  end
+
+  defp find_neighbour_fields(map, fields) do
+    neighbour_fields =
+      fields
+      |> Enum.flat_map(fn {field, _value} ->
+        Enum.map(directions(), &advance(field, &1))
+      end)
+      |> Enum.uniq()
+
+    Map.take(map, neighbour_fields)
+  end
+
+  def move(%{path: [_, _], map: map} = robot) when map_size(map) > 3 do
+    {:ok, robot}
   end
 
   def move(robot) do
     {reply, robot} = do_move(robot)
-    robot = apply_move(robot, reply)
-
-    case reply do
-      @wall -> robot |> change_direction() #|> move()
-      @moved -> robot |> move()
-      @found -> {:ok, robot}
-    end
+    robot |> apply_move(reply) |> change_direction()
   end
 
   defp do_move(robot) do
@@ -44,10 +70,12 @@ defmodule AoC2019.Day15 do
 
   defp change_direction(robot) do
     %{map: map} = robot
-    candidates = Enum.filter(directions(), fn direction ->
-      location = advance(current_location(robot), direction)
-      is_nil(Map.get(map, location))
-    end) |> Enum.shuffle()
+
+    candidates =
+      Enum.filter(directions(), fn direction ->
+        location = advance(current_location(robot), direction)
+        is_nil(Map.get(map, location))
+      end)
 
     case candidates do
       [direction | _] -> move(%{robot | direction: direction})
@@ -78,47 +106,15 @@ defmodule AoC2019.Day15 do
 
   defp advance({x, y}, {dx, dy}), do: {x + dx, y + dy}
 
-  defp directions, do: [@north, @south, @west, @east]
-
-  defp backtrack_direction([{x1, y1}, {x2, y2} | _]) do
-    {x2 - x1, y2 - y1}
+  defp directions do
+    [@north, @south, @west, @east]
   end
+
+  # defp backtrack_direction([{_, _}]), do: {0, 1}
+  defp backtrack_direction([{x1, y1}, {x2, y2} | _]), do: {x2 - x1, y2 - y1}
 
   defp robot_input(@north), do: 1
   defp robot_input(@south), do: 2
   defp robot_input(@west), do: 3
   defp robot_input(@east), do: 4
-
-  defp draw_map(robot) do
-    IO.puts("-------------------")
-    %{map: map, path: [location | _], direction: direction} = robot
-    {{min_x, _}, _} = Enum.min_by(map, fn {{x, _}, _} -> x end)
-    {{_, min_y}, _} = Enum.min_by(map, fn {{_, y}, _} -> y end)
-    {{max_x, _}, _} = Enum.max_by(map, fn {{x, _}, _} -> x end)
-    {{_, max_y}, _} = Enum.max_by(map, fn {{_, y}, _} -> y end)
-
-    for y <- max_y..min_y do
-      for x <- min_x..max_x do
-        cond do
-          {x, y} == {0, 0} -> "%"
-          {x, y} == location -> robot_indicator(direction)
-          true -> tile(Map.get(map, {x, y}))
-        end
-      end
-    end
-    |> Enum.intersperse("\n")
-    |> IO.puts()
-
-    robot
-  end
-
-  defp robot_indicator(@north), do: "^"
-  defp robot_indicator(@south), do: "v"
-  defp robot_indicator(@east), do: ">"
-  defp robot_indicator(@west), do: "<"
-
-  defp tile(@wall), do: "#"
-  defp tile(@moved), do: "."
-  defp tile(@found), do: "*"
-  defp tile(_), do: " "
 end
